@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    container_name: patent-insight-api
+    environment:
+      - DATABASE_URL=sqlite:///./patent_tracker.db
+    ports:
+      - "8000:8000"

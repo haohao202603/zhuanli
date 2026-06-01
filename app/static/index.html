@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patent Insight Tracker - Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; max-width: 980px; }
+    h1 { margin-bottom: 8px; }
+    section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    input, button, textarea { margin: 6px 0; padding: 8px; width: 100%; }
+    button { cursor: pointer; width: auto; }
+    pre { background: #111; color: #0f0; padding: 12px; border-radius: 8px; overflow: auto; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Patent Insight Tracker - 测试页面</h1>
+  <p>这是一个无需写代码的在线测试页。按顺序点按钮即可。</p>
+
+  <section>
+    <h2>1) 健康检查</h2>
+    <button onclick="health()">GET /health</button>
+  </section>
+
+  <section>
+    <h2>2) 创建项目</h2>
+    <input id="projectName" value="STING Demo Project" />
+    <input id="targetName" value="STING" />
+    <input id="synonyms" value="TMEM173, stimulator of interferon genes" />
+    <button onclick="createProject()">POST /projects</button>
+  </section>
+
+  <section>
+    <h2>3) 创建规则</h2>
+    <input id="projectIdForRule" placeholder="Project ID（自动填充）" />
+    <button onclick="createRule()">POST /projects/{id}/rules</button>
+  </section>
+
+  <section>
+    <h2>4) 创建事件</h2>
+    <input id="projectIdForEvent" placeholder="Project ID（自动填充）" />
+    <button onclick="createEvent()">POST /events</button>
+  </section>
+
+  <section>
+    <h2>5) 查看项目 Summary</h2>
+    <input id="projectIdForSummary" placeholder="Project ID（自动填充）" />
+    <button onclick="projectSummary()">GET /projects/{id}/summary</button>
+  </section>
+
+  <section>
+    <h2>输出</h2>
+    <pre id="output">等待操作...</pre>
+  </section>
+
+<script>
+const output = document.getElementById('output');
+function log(data) {
+  output.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+}
+async function call(url, options={}) {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  log({status: res.status, data});
+  return data;
+}
+function fillProjectId(id){
+  ['projectIdForRule','projectIdForEvent','projectIdForSummary'].forEach(k => document.getElementById(k).value = id);
+}
+async function health(){ await call('/health'); }
+async function createProject(){
+  const body = {
+    name: document.getElementById('projectName').value,
+    target_name: document.getElementById('targetName').value,
+    synonyms: document.getElementById('synonyms').value.split(',').map(s=>s.trim()).filter(Boolean)
+  };
+  const data = await call('/projects', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if (data.id) fillProjectId(data.id);
+}
+async function createRule(){
+  const id = document.getElementById('projectIdForRule').value;
+  await call(`/projects/${id}/rules`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    keywords:['STING inhibitor','TMEM173'], assignees:['Demo Pharma'], ipc_cpc:['C07D'], severity:'P1', enabled:true
+  })});
+}
+async function createEvent(){
+  const id = Number(document.getElementById('projectIdForEvent').value);
+  await call('/events', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    project_id:id, patent_id:'WO2026123456', event_type:'new_publication', severity:'P1', summary:'Demo event'
+  })});
+}
+async function projectSummary(){
+  const id = document.getElementById('projectIdForSummary').value;
+  await call(`/projects/${id}/summary`);
+}
+</script>
+</body>
+</html>
